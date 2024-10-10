@@ -1,0 +1,103 @@
+--/////////////////////////////////////Practica Presencial////////////////////////////////////////////////////
+
+--Mostrar todos los campos de region y ciudad
+select 
+	ciudad.*,
+	nombre_region
+	
+from region 
+inner join ciudad on region.id_region = ciudad.id_region 
+
+--Muestre los campeonatos que se realizaron en la region Valle
+SELECT 
+	Campeonato.*,
+	Region.nombre_region
+FROM Campeonato
+INNER JOIN Ciudad ON Campeonato.codigo_ciudad = Ciudad.codigo_ciudad
+INNER JOIN Region ON Ciudad.id_region = Region.id_region
+WHERE Region.nombre_region = 'Valle'
+
+--Muestre el nombre de los equipos que practican futbol y pertenecen a la zonaB
+SELECT 
+	E.nombre_equipo,
+	D.nombre_deporte,
+	Z.nombre_zona
+FROM Equipo AS E
+INNER JOIN Zona AS Z ON E.codigo_zona = Z.codigo_zona
+INNER JOIN Deporte AS D ON E.id_deporte = D.id_deporte
+WHERE  D.nombre_deporte='Futbol' AND Z.nombre_zona = 'Zona B'
+--No hay equipo que cumplan con ambas consignas
+
+
+--Usando Subconsultas muestre las fechas en donde se vendieron menos cantidad de entradas que el promedio
+SELECT
+	fecha,
+	entradas_vendidas
+FROM Campeonato
+WHERE 
+	entradas_vendidas < (SELECT AVG(entradas_vendidas) FROM Campeonato)
+	
+-- " 	" 	muestre el nombre de las ciudades en donde se vendieron más entradas que el promedio
+SELECT
+	nombre_ciudad,
+	entradas_vendidas
+FROM Ciudad AS C
+INNER JOIN Campeonato AS CTO ON CTO.codigo_ciudad = C.codigo_ciudad
+WHERE entradas_vendidas > (SELECT AVG(entradas_vendidas) FROM Campeonato)
+
+
+--2da manera más eficiente
+SELECT 	nombre_ciudad FROM Ciudad WHERE codigo_ciudad IN ( --Pongo IN cuando me puede devolver un conjunto de resultados
+	SELECT codigo_ciudad FROM Campeonato WHERE entradas_vendidas > (
+		SELECT AVG(entradas_vendidas) FROM Campeonato))
+
+
+--Muestre el nombre de la ciudad  que pertenece a la region valle y donde se haya realizado un campeonato en fecha 07-03-2023
+SELECT 
+	nombre_ciudad
+FROM Ciudad
+WHERE id_region = (
+	SELECT id_region FROM Region WHERE nombre_region='Valle') --Pongo igual cuando solo me puede devolver un valor
+	AND codigo_ciudad IN (
+		SELECT codigo_ciudad FROM Campeonato WHERE fecha='07-03-2023')
+		
+		
+--Muestre la cantidad de entradas vendidas en cada ciudad
+SELECT 
+	C.nombre_ciudad,
+	SUM(CTO.entradas_vendidas) AS Entradas_Vendidas
+FROM Ciudad AS C
+INNER JOIN Campeonato AS CTO ON CTO.codigo_ciudad = C.codigo_ciudad
+GROUP BY C.nombre_ciudad 
+ORDER BY SUM(CTO.entradas_vendidas) DESC
+
+--Muestre la cantidad de ciudades que tiene la region Valle
+SELECT
+	COUNT(C.codigo_ciudad) AS cantidad_ciudad_valle	
+FROM Ciudad AS C
+INNER JOIN Region AS R ON C.id_region = R.id_region
+WHERE R.nombre_region = 'Valle'
+
+-- Muestre la cantidad de campeonatos que se jugaron en la zona A
+SELECT COUNT(CTO.*) AS cantidad_campeonato
+FROM Campeonato AS CTO
+INNER JOIN Equipo AS E ON E.codigo_equipo = CTO.codigo_equipo
+INNER JOIN Zona AS Z ON E.codigo_zona = Z.codigo_zona
+WHERE Z.nombre_zona= 'Zona A'
+
+-- muestre lo recaudado en el dia del 07-03-2023
+
+CREATE VIEW recaudado_dia(
+SELECT SUM(precio_entrada*entradas_vendidas) AS Recaudado FROM Campeonato
+WHERE fecha = '07-03-2023'
+
+-- Crea una vista, que muestre el nombre de la ciudad junto con la fecha que se realizaron los campeonatos 
+CREATE VIEW v_ciudadcampeonato AS(
+	SELECT 
+		C.nombre_ciudad,
+		CTO.fecha
+	FROM Campeonato AS CTO
+	INNER JOIN Ciudad AS C ON CTO.codigo_ciudad=C.codigo_ciudad
+)
+--Ejecución
+SELECT * FROM v_ciudadcampeonato
